@@ -1,31 +1,30 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.NetworkInformation;
 using System.Text;
 using System.Threading.Tasks;
 
 
 namespace ENTIDADES
 {
-    public class cliente
+    public class Cliente : Persona
     {
-        public int Id { get; set; }
-        public string Nombre { get; set; }
-        public string Telefono { get; set; }
-        public decimal SaldoPendiente { get; set; }
+        public decimal LimiteCredito { get; set; }
+        public decimal DeudaTotal { get; set; }
+        public string Direccion { get; set; }
 
-        public cliente(int id, string nombre, string telefono, decimal saldoPendiente)
+
+        public Cliente(string cedula, string telefono, string email, string apellido, int id_proveedor, int id_cliente, decimal limiteCredito, decimal deudaTotal, string direccion)
+            : base(cedula, telefono, email, apellido)
         {
-            Id = id;
-            Nombre = nombre;
-            Telefono = telefono;
-            SaldoPendiente = saldoPendiente;
+            LimiteCredito = limiteCredito;
+            DeudaTotal = deudaTotal;
+            Direccion = direccion;
         }
 
-        public override string ToString()
-        {
-            return $"Id: {Id}, Nombre: {Nombre}, Telefono: {Telefono}, Saldo Pendiente: {SaldoPendiente}";
-        }
+        public Cliente() { }
+
 
     }
 }

@@ -6,31 +6,19 @@ using System.Threading.Tasks;
 
 namespace ENTIDADES
 {
-    class venta
+    class Venta : BaseEntity
     {
-
-        public int Id { get; set; }
-        public cliente Cliente { get; set; }
-        public List<producto> Productos { get; set; }
+        public int Id_Cliente { get; set; }
+        public int Id_Item { get; set; }
         public decimal Total { get; set; }
-        public bool Pagado { get; set; }
-        public DateTime Fecha { get; set; }
+        public DateTime Fecha { get; set; } 
 
-
-        public venta(int id, cliente cliente, List<producto> productos, decimal total, bool pagado, DateTime fecha)
+        public Venta(int id_cliente, int id_item, decimal total, DateTime fecha)
         {
-            Id = id;
-            Cliente = cliente;
-            Productos = productos;
+            Id_Cliente = id_cliente;
+            Id_Item = id_item;
             Total = total;
-            Pagado = pagado;
             Fecha = fecha;
         }
-
-        public override string ToString()
-        {
-            return $"Id: {Id}, Cliente: {Cliente}, Productos: {Productos}, Total: {Total}, Pagado: {Pagado}, Fecha: {Fecha}";
-        }
-
     }
 }

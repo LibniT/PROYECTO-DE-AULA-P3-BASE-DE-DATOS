@@ -6,27 +6,17 @@ using System.Threading.Tasks;
 
 namespace ENTIDADES
 {
-    class producto
+    class Producto : NamedEntity
     {
-
-        public int Id { get; set; }
-        public string Nombre { get; set; }
         public decimal Precio { get; set; }
-        public int Stock { get; set; }
+        public int CantidadStock { get; set; }
 
-        public producto(int id, string nombre, decimal precio, int stock)
+
+        public Producto(string nombre, decimal precio, int cantidadStock)
         {
-            Id = id;
             Nombre = nombre;
             Precio = precio;
-            Stock = stock;
+            CantidadStock = cantidadStock;
         }
-
-        public override string ToString()
-        {
-            return $"Id: {Id}, Nombre: {Nombre}, Precio: {Precio}, Stock: {Stock}";
-        }
-
-
     }
 }
