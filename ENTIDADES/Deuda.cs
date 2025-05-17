@@ -6,18 +6,57 @@ using System.Threading.Tasks;
 
 namespace ENTIDADES
 {
-    public class Deudas : BaseEntity
+    public class Deuda : Pago
     {
-        public int Id_Cliente { get; set; }
-        public int Id_Venta { get; set; }
-        public DateTime FechaVencimiento { get; set; }
 
-        public Deudas(int id_cliente, int id_venta, DateTime fechaVencimiento)
+        public DateTime FechaVencimiento { get; set; }
+        public decimal Interes { get; set; }
+
+        public override void CambiarEstado(Estado estado)
         {
-            Id_Cliente = id_cliente;
-            Id_Venta = id_venta;
-            FechaVencimiento = fechaVencimiento;
+            // Implementar lógica para cambiar el estado de la deuda
+            throw new NotImplementedException();
         }
+
+        public override void CrearFactura()
+        {
+            // Implementar lógica para crear la factura de la deuda
+            throw new NotImplementedException();
+        }
+
+        public void GenerarRecordatorio()
+        {
+            // Implementar lógica para generar un recordatorio de pago
+            throw new NotImplementedException();
+        }
+
+        public decimal CalcularInteres(decimal monto)
+        {
+            // Implementar lógica para calcular el interés sobre el monto de la deuda
+            return monto * Interes / 100;
+        }
+
+        public List<Cliente> ListaNegra(Cliente cliente, DateTime FechaVencimiento)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Deuda()
+        {
+            // Constructor por defecto
+        }
+
+        public Deuda(int id, DateTime fecha, Cliente cliente, DateTime fechaVencimiento, decimal interes)
+            : base()
+        {
+            Id = id;
+            Fecha = fecha;
+            Cliente = cliente;
+            FechaVencimiento = fechaVencimiento;
+            Interes = interes;
+        }
+
+
 
     }
 }

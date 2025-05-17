@@ -6,19 +6,19 @@ using System.Threading.Tasks;
 
 namespace ENTIDADES
 {
-    public class Persona : BaseEntity
+    public class Persona
     {
         public string Cedula { get; set; }
         public string Telefono { get; set; }
         public string Email { get; set; }
-        public string Apellido { get; set; }
+        public string Nombre { get; set; }
 
-        public Persona(string cedula, string telefono, string email, string apellido)
+        public Persona(string cedula, string telefono, string email, string nombre)
         {
             Cedula = cedula;
             Telefono = telefono;
             Email = email;
-            Apellido = apellido;
+            Nombre = nombre;
         }
 
         public Persona() { }

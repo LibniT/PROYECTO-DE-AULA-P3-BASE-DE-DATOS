@@ -6,20 +6,24 @@ using System.Threading.Tasks;
 
 namespace ENTIDADES
 {
-    public class Pago : BaseEntity
+    public abstract class Pago
     {
 
-        public int Id_Deuda { get; set; }
-        public string MetodoPago { get; set; }
-
-
-        public Pago(int id_deuda, string metodoPago)
+        public int Id { get; set; }
+        public enum Estado
         {
-            Id_Deuda = id_deuda;
-            MetodoPago = metodoPago;
+            Activo,
+            Inactivo,
+            Pendiente
         }
 
-        public Pago() { }
+        public string MetodoPago { get; set; }
+        public Venta Venta { get; set; }
+
+
+        public abstract void CambiarEstado(Estado estado);
+        public abstract void CrearFactura();
+
 
     }
 }

@@ -6,19 +6,29 @@ using System.Threading.Tasks;
 
 namespace ENTIDADES
 {
-    class Venta : BaseEntity
+    public class Venta 
     {
-        public int Id_Cliente { get; set; }
-        public int Id_Item { get; set; }
-        public decimal Total { get; set; }
-        public DateTime Fecha { get; set; } 
 
-        public Venta(int id_cliente, int id_item, decimal total, DateTime fecha)
+        public int Id { get; set; }
+        public DateTime Fecha { get; set; }
+        public Cliente Cliente { get; set; }
+        public List<Carrito> Productos { get; set; } = new List<Carrito>();
+        public decimal Total => Productos.Sum(p => p.Subtotal);
+
+        public Venta(int id, DateTime fecha, Cliente cliente)
         {
-            Id_Cliente = id_cliente;
-            Id_Item = id_item;
-            Total = total;
+            Id = id;
             Fecha = fecha;
+            Cliente = cliente;
         }
+
+        public Venta() { }
+
+
+        public void AgregarProducto(Carrito producto)
+        {
+            Productos.Add(producto);
+        }
+
     }
 }

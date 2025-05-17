@@ -41,16 +41,15 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="BaseEntity.cs" />
+    <Compile Include="Administrador.cs" />
+    <Compile Include="Carrito.cs" />
     <Compile Include="Cliente.cs" />
-    <Compile Include="Deudas.cs" />
-    <Compile Include="ItemVenta.cs" />
-    <Compile Include="NamedEntity.cs" />
-    <Compile Include="Pagos.cs" />
+    <Compile Include="Deuda.cs" />
+    <Compile Include="Efectivo.cs" />
+    <Compile Include="Pago.cs" />
     <Compile Include="Persona.cs" />
     <Compile Include="Producto.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Transacciones.cs" />
     <Compile Include="Venta.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
