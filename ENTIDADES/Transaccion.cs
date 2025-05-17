@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace ENTIDADES
 {
-    public class Transacciones : BaseEntity
+    public class Transaccion : BaseEntity
     {
         public int Id_Cliente { get; set; }
         public int Id_Venta { get; set; }
@@ -15,7 +15,7 @@ namespace ENTIDADES
         public string Descripcion { get; set; }
 
 
-        public Transacciones(int id_cliente, int id_venta, decimal monto, DateTime fecha, string descripcion)
+        public Transaccion(int id_cliente, int id_venta, decimal monto, DateTime fecha, string descripcion)
         {
             Id_Cliente = id_cliente;
             Id_Venta = id_venta;

@@ -6,20 +6,20 @@ using System.Threading.Tasks;
 
 namespace ENTIDADES
 {
-    public class Pagos : BaseEntity
+    public class Pago : BaseEntity
     {
 
         public int Id_Deuda { get; set; }
         public string MetodoPago { get; set; }
 
 
-        public Pagos(int id_deuda, string metodoPago)
+        public Pago(int id_deuda, string metodoPago)
         {
             Id_Deuda = id_deuda;
             MetodoPago = metodoPago;
         }
 
-        public Pagos() { }
+        public Pago() { }
 
     }
 }
