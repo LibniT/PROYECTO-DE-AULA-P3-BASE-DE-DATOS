@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -8,17 +10,29 @@ namespace ENTIDADES
 {
     public class Persona
     {
-        public string Cedula { get; set; }
-        public string Telefono { get; set; }
-        public string Email { get; set; }
+        [Key]
+        [Column("id")]
+        public int Id { get; set; }
+
+        [Column("nombre")]
+        [Required]
+        [StringLength(100)]
         public string Nombre { get; set; }
 
-        public Persona(string cedula, string telefono, string email, string nombre)
+        [Column("telefono")]
+        [StringLength(20)]
+        public string Telefono { get; set; }
+
+        [Column("email")]
+        [StringLength(100)]
+        public string Email { get; set; }
+
+        public Persona(int id, string nombre, string telefono, string email)
         {
-            Cedula = cedula;
+            Id = id;
+            Nombre = nombre;
             Telefono = telefono;
             Email = email;
-            Nombre = nombre;
         }
 
         public Persona() { }

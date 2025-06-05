@@ -1,64 +1,80 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.NetworkInformation;
-using System.Text;
-using System.Threading.Tasks;
-
+﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace ENTIDADES
 {
-    public class Cliente : Persona
+    [Table("CLIENTE")]
+    public class CLIENTE : Persona
     {
-        public decimal LimiteCredito { get; set; }
+        [Key]
+        [Column("id_cliente")]
+        public int Id { get; set; }
+
+        [Column("cedula")]
+        [StringLength(12)]
+        [Index(IsUnique = true)] // Restricción de unicidad
+        public string Cedula { get; set; }
+
+        [Column("nombre")]
+        [Required]
+        [StringLength(60)]
+        public string Nombre { get; set; }
+
+        [Column("telefono")]
+        [StringLength(10)]
+        public string Telefono { get; set; }
+
+        [Column("email")]
+        [StringLength(55)]
+        public string Email { get; set; }
+
+        [Column("deudaTotal")]
         public decimal DeudaTotal { get; set; }
+
+        [Column("direccion")]
+        [StringLength(40)]
         public string Direccion { get; set; }
-        public enum Estado
-        {
-            Activo,
-            Inactivo,
-            Pendiente
-        }
 
+        [Column("limiteCredito")]
+        public decimal LimiteCredito { get; set; }
+
+        [Column("estado")]
+        [StringLength(15)]
+        [Required]
+        public string Estado { get; set; } // Asegurarse de que sea requerido
+
+        [Column("strikes")]
         public int Strikes { get; set; }
-        public List<Venta> HistorialCompras { get; set; } = new List<Venta>();
 
-        public Cliente(string cedula, string telefono, string email, string nombre, decimal limiteCredito, decimal deudaTotal, string direccion) : base(cedula, telefono, email, nombre)
+        public CLIENTE() { }
+
+        public CLIENTE(int id, string cedula, string nombre, string telefono, string email, decimal deudaTotal,
+            string direccion, decimal limiteCredito, string estado, int strikes)
         {
-            LimiteCredito = limiteCredito;
+            Id = id;
+            Cedula = cedula;
+            Nombre = nombre;
+            Telefono = telefono;
+            Email = email;
             DeudaTotal = deudaTotal;
             Direccion = direccion;
+            LimiteCredito = limiteCredito;
+            Estado = estado;
+            Strikes = strikes;
         }
 
-        public void ActualizarDeuda(decimal monto)
+        public CLIENTE(string cedula, string nombre, string telefono, string email, decimal deudaTotal,
+            string direccion, decimal limiteCredito, string estado, int strikes)
         {
-            if (monto < 0)
-            {
-                throw new ArgumentException("El monto no puede ser negativo.");
-            }
-            if (DeudaTotal + monto > LimiteCredito)
-            {
-                throw new InvalidOperationException("El monto excede el límite de crédito.");
-            }
-            DeudaTotal += monto;
+            Cedula = cedula;
+            Nombre = nombre;
+            Telefono = telefono;
+            Email = email;
+            DeudaTotal = deudaTotal;
+            Direccion = direccion;
+            LimiteCredito = limiteCredito;
+            Estado = estado;
+            Strikes = strikes;
         }
-
-        public List<Pago> HistorialCredito()
-        {
-            throw new NotImplementedException();
-        }
-
-        public void ContadorAdvertencias()
-        {
-            Strikes++;
-            if (Strikes >= 3)
-            {
-                // Implementar lógica para bloquear al cliente
-                throw new InvalidOperationException("El cliente ha alcanzado el límite de advertencias.");
-            }
-        }
-
-
-
     }
 }
