@@ -41,7 +41,8 @@ namespace A_Mano.Entity
         EsperandoDescripcionCompra,
         ConfirmandoCompra,
         EsperandoSubtotalAprobacion,
-        EsperandoFechaVencimientoAprobacion
+        EsperandoFechaVencimientoAprobacion,
+        AprobandoSolicitud
     }
 
     // Clase para almacenar el estado del usuario
@@ -49,7 +50,10 @@ namespace A_Mano.Entity
     {
         public AuthenticationState AuthState { get; set; } = AuthenticationState.NotAuthenticated;
         public UserRole UserRole { get; set; }
-        public MenuState MenuState { get; set; } = MenuState.Main;
+        public string TempCompraDescripcion { get; set; }   
+        public MenuState MenuState { get; set; }
+        public string SolicitudEnProcesoId { get; set; }
+
 
         // Datos del cliente
         public int ClientId { get; set; }

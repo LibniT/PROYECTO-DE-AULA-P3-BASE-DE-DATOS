@@ -10,6 +10,7 @@ using Telegram.Bot.Exceptions;
 using Telegram.Bot.Types.ReplyMarkups;
 using A_Mano.DAl;
 using A_Mano.Entity;
+using System.Linq;
 
 namespace BLL
 {
@@ -68,8 +69,18 @@ namespace BLL
                 AllowedUpdates = Array.Empty<Telegram.Bot.Types.Enums.UpdateType>()
             };
 
-            _botClient.StartReceiving(OnMessage, HandleError, receiverOptions, cancellationToken: cts.Token);
-            AddLog("Receptor de mensajes iniciado.");
+            _botClient.StartReceiving(async (client, update, token) =>
+            {
+                if (update.CallbackQuery != null)
+                    await OnCallbackQuery(client, update.CallbackQuery);
+                else
+                    await OnMessage(client, update, token);
+            },
+                HandleError,
+                receiverOptions,
+                cancellationToken: cts.Token);
+
+
         }
 
         public async Task OnMessage(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
@@ -248,18 +259,18 @@ namespace BLL
                 userState.AuthState = AuthenticationState.Authenticated;
 
                 string estadoEmoji;
-switch (cliente.Estado.ToUpper())
-{
-    case "ACTIVO":
-        estadoEmoji = "✅";
-        break;
-    case "RIESGO":
-        estadoEmoji = "⚠️";
-        break;
-    default:
-        estadoEmoji = "❓";
-        break;
-}
+                switch (cliente.Estado.ToUpper())
+                {
+                    case "ACTIVO":
+                        estadoEmoji = "✅";
+                        break;
+                    case "RIESGO":
+                        estadoEmoji = "⚠️";
+                        break;
+                    default:
+                        estadoEmoji = "❓";
+                        break;
+                }
 
 
                 await _botClient.SendTextMessageAsync(chatId,
@@ -351,6 +362,68 @@ switch (cliente.Estado.ToUpper())
 
         private async Task ProcesarComandoCliente(long chatId, string comando, UserState userState)
         {
+            // 👇 PRIORIDAD: manejar estados antes de comandos normales
+            if (userState.MenuState == MenuState.RealizandoCompra)
+            {
+                var descripcion = comando.Trim();
+                if (descripcion == "🛒 realizar compra") return; // Ignorar el botón inicial como descripción
+                userState.TempCompraDescripcion = descripcion;
+                userState.MenuState = MenuState.ConfirmandoCompra;
+
+                await _botClient.SendTextMessageAsync(chatId,
+                    $"📦 *Resumen del Pedido:*\n" +
+                    $"{descripcion}\n\n" +
+                    "¿Deseas enviar esta solicitud al administrador? (Sí/No)",
+                    parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
+                return;
+            }
+            else if (userState.MenuState == MenuState.ConfirmandoCompra)
+            {
+                var respuesta = comando.Trim().ToLower();
+
+                if (respuesta == "sí" || respuesta == "si")
+                {
+                    var pedido = new CompraEnProceso
+                    {
+                        ClienteId = userState.ClientId,
+                        Descripcion = userState.TempCompraDescripcion
+                    };
+
+                    var solicitudId = Guid.NewGuid().ToString();
+                    _solicitudesCompra[solicitudId] = pedido;
+
+                    foreach (var adminId in _adminChatIds)
+                    {
+                        await _botClient.SendTextMessageAsync(adminId,
+                            $"🆕 *NUEVO PEDIDO DE DOMICILIO*\n" +
+                            $"👤 Cliente: {userState.ClientName}\n" +
+                            $"📝 Descripción: {pedido.Descripcion}\n\n" +
+                            $"El administrador debe ingresar el valor y fecha límite del pago.",
+                            parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
+                    }
+
+                    await _botClient.SendTextMessageAsync(chatId,
+                        "✅ Tu solicitud ha sido enviada al administrador. Te contactaremos cuando esté registrada.");
+
+                    userState.MenuState = MenuState.Main;
+                    await MostrarMenuPrincipalCliente(chatId);
+                }
+                else if (respuesta == "no")
+                {
+                    await _botClient.SendTextMessageAsync(chatId, "❌ Solicitud cancelada.");
+                    userState.MenuState = MenuState.Main;
+                    await MostrarMenuPrincipalCliente(chatId);
+                }
+                else
+                {
+                    await _botClient.SendTextMessageAsync(chatId,
+                        "Por favor responde con *Sí* o *No*.",
+                        parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
+                }
+                return;
+            }
+
+            // 👇 Luego los comandos normales
             switch (comando)
             {
                 case "1️⃣ resumen de cuenta":
@@ -379,6 +452,14 @@ switch (cliente.Estado.ToUpper())
                         "- Llamar al: 0800-A MANO\n");
                     break;
 
+                case "🛒 realizar compra":
+                    await _botClient.SendTextMessageAsync(chatId,
+                        "🛍️ *Solicitud de Compra*\n" +
+                        "Por favor, escribe una breve descripción de lo que deseas pedir para domicilio.",
+                        parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
+                    userState.MenuState = MenuState.RealizandoCompra;
+                    break;
+
                 case "/start":
                     await MostrarMenuPrincipalCliente(chatId);
                     break;
@@ -390,8 +471,94 @@ switch (cliente.Estado.ToUpper())
             }
         }
 
+
         private async Task ProcesarComandoAdministrador(long chatId, string comando, UserState userState)
         {
+
+            if (comando.ToLower().StartsWith("aprobar:"))
+            {
+                try
+                {
+                    var partes = comando.Substring(8).Split(',');
+                    if (partes.Length != 2)
+                        throw new Exception("Formato incorrecto. Usa: Aprobar: 35000, 12/06/2025");
+
+                    decimal subTotal = decimal.Parse(partes[0].Trim());
+                    DateTime fecha = DateTime.ParseExact(partes[1].Trim(), "dd/MM/yyyy", null);
+
+                    var ultimaSolicitud = _solicitudesCompra.LastOrDefault();
+                    if (ultimaSolicitud.Value == null)
+                        throw new Exception("No hay solicitudes pendientes.");
+
+                    var solicitud = ultimaSolicitud.Value;
+                    solicitud.SubTotal = subTotal;
+                    solicitud.Domicilio = 0; // Puedes agregarlo luego si lo deseas
+
+                    int ventaId = _adminBLL.AprobarCompra(solicitud, fecha, userState.AdminName);
+
+                    await _botClient.SendTextMessageAsync(chatId,
+                        $"✅ Pedido aprobado y registrado exitosamente (Venta ID: {ventaId})");
+
+                    var clienteChat = _userStates.FirstOrDefault(kvp => kvp.Value.ClientId == solicitud.ClienteId).Key;
+                    if (clienteChat != 0)
+                    {
+                        await _botClient.SendTextMessageAsync(clienteChat,
+                            $"📦 *Tu pedido ha sido aprobado*\n" +
+                            $"🧾 Total: ${solicitud.Total:N0}\n" +
+                            $"📅 Fecha máxima de pago: {fecha:dd/MM/yyyy}\n" +
+                            $"¡Gracias por tu compra! 💵",
+                            parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
+                    }
+
+                    _solicitudesCompra.Remove(ultimaSolicitud.Key);
+                }
+                catch (Exception ex)
+                {
+                    await _botClient.SendTextMessageAsync(chatId,
+                        $"❌ Error al procesar la aprobación: {ex.Message}");
+                }
+
+                return;
+            }
+
+            if (userState.MenuState == MenuState.AprobandoSolicitud)
+            {
+                try
+                {
+                    var partes = comando.Split(',');
+                    decimal subTotal = decimal.Parse(partes[0].Trim());
+                    DateTime fecha = DateTime.ParseExact(partes[1].Trim(), "dd/MM/yyyy", null);
+
+                    var solicitudId = userState.SolicitudEnProcesoId;
+                    var solicitud = _solicitudesCompra[solicitudId];
+
+                    solicitud.SubTotal = subTotal;
+                    solicitud.Domicilio = 0;
+
+                    int ventaId = _adminBLL.AprobarCompra(solicitud, fecha, userState.AdminName);
+
+                    await _botClient.SendTextMessageAsync(chatId, $"✅ Solicitud `{solicitudId}` aprobada.");
+
+                    var clienteChat = _userStates.FirstOrDefault(kvp => kvp.Value.ClientId == solicitud.ClienteId).Key;
+                    if (clienteChat != 0)
+                    {
+                        await _botClient.SendTextMessageAsync(clienteChat,
+                            $"📦 *Tu pedido ha sido aprobado*\n🧾 Total: ${solicitud.Total:N0}\n📅 Fecha límite: {fecha:dd/MM/yyyy}",
+                            parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
+                    }
+
+                    _solicitudesCompra.Remove(solicitudId);
+                    userState.MenuState = MenuState.Main;
+                }
+                catch (Exception ex)
+                {
+                    await _botClient.SendTextMessageAsync(chatId, $"❌ Error: {ex.Message}");
+                }
+
+                return;
+            }
+
+
             switch (comando)
             {
                 case "📊 ver todos los clientes":
@@ -418,6 +585,38 @@ switch (cliente.Estado.ToUpper())
                     string vencimientosProximos = _adminBLL.GenerarVencimientosProximos();
                     await _botClient.SendTextMessageAsync(chatId, vencimientosProximos, parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
                     break;
+                case "📬 solicitudes pendientes":
+                    if (_solicitudesCompra.Count == 0)
+                    {
+                        await _botClient.SendTextMessageAsync(chatId, "No hay solicitudes pendientes.");
+                        return;
+                    }
+
+                    foreach (var kvp in _solicitudesCompra)
+                    {
+                        var solicitud = kvp.Value;
+                        string mensaje = $"🛒 *SOLICITUD DE COMPRA*\n" +
+                                         $"🆔 ID: `{kvp.Key}`\n" +
+                                         $"👤 Cliente: {solicitud.ClienteId}\n" +
+                                         $"📝 Descripción: {solicitud.Descripcion}\n\n" +
+                                         $"¿Deseas aprobar esta solicitud?";
+
+                        var botones = new InlineKeyboardMarkup(new[]
+                        {
+                            new []
+                            {
+                                InlineKeyboardButton.WithCallbackData("✅ Aprobar", $"aprobar_{kvp.Key}"),
+                                InlineKeyboardButton.WithCallbackData("❌ Rechazar", $"rechazar_{kvp.Key}")
+                            }
+                        });
+
+                        await _botClient.SendTextMessageAsync(
+                            chatId,
+                            mensaje,
+                            parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown,
+                            replyMarkup: botones);
+                    }
+                    return;
 
                 case "/start":
                     await MostrarMenuPrincipalAdministrador(chatId);
@@ -456,7 +655,7 @@ switch (cliente.Estado.ToUpper())
             {
                 new[] { new KeyboardButton("1️⃣ Resumen de Cuenta"), new KeyboardButton("2️⃣ Mis Créditos Pendientes") },
                 new[] { new KeyboardButton("3️⃣ Historial de Compras"), new KeyboardButton("4️⃣ Próximos Vencimientos") },
-                new[] { new KeyboardButton("5️⃣ Contactar Tienda") },
+                new[] { new KeyboardButton("5️⃣ Contactar Tienda"), new KeyboardButton("🛒 Realizar Compra") },
                 new[] { new KeyboardButton("❌ Cerrar Sesión") }
             })
             {
@@ -472,6 +671,7 @@ switch (cliente.Estado.ToUpper())
             );
         }
 
+
         private async Task MostrarMenuPrincipalAdministrador(long chatId)
         {
             var userState = _userStates[chatId];
@@ -486,6 +686,7 @@ switch (cliente.Estado.ToUpper())
                 new[] { new KeyboardButton("📊 Ver Todos los Clientes"), new KeyboardButton("🔍 Buscar Cliente por Nombre") },
                 new[] { new KeyboardButton("📋 Clientes en Mora"), new KeyboardButton("✅ Clientes al Día") },
                 new[] { new KeyboardButton("📅 Vencimientos Próximos") },
+                new[] { new KeyboardButton("📬 Solicitudes Pendientes") },
                 new[] { new KeyboardButton("❌ Cerrar Sesión") }
             })
             {
@@ -553,5 +754,62 @@ switch (cliente.Estado.ToUpper())
         {
             Console.WriteLine($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {message}");
         }
+
+        private async Task OnCallbackQuery(ITelegramBotClient botClient, CallbackQuery callback)
+        {
+            var chatId = callback.Message.Chat.Id;
+            var userState = _userStates.ContainsKey(chatId) ? _userStates[chatId] : null;
+
+            if (userState == null || userState.UserRole != UserRole.Administrador)
+            {
+                await botClient.AnswerCallbackQueryAsync(callback.Id, "No autorizado.");
+                return;
+            }
+
+            string[] parts = callback.Data.Split('_');
+            if (parts.Length != 2)
+            {
+                await botClient.AnswerCallbackQueryAsync(callback.Id, "Formato inválido.");
+                return;
+            }
+
+            string accion = parts[0];
+            string solicitudId = parts[1];
+
+            if (!_solicitudesCompra.ContainsKey(solicitudId))
+            {
+                await botClient.AnswerCallbackQueryAsync(callback.Id, "Solicitud no encontrada.");
+                return;
+            }
+
+            var solicitud = _solicitudesCompra[solicitudId];
+
+            if (accion == "rechazar")
+            {
+                _solicitudesCompra.Remove(solicitudId);
+                await botClient.SendTextMessageAsync(chatId, $"❌ Solicitud `{solicitudId}` rechazada.");
+                await botClient.SendTextMessageAsync(
+                    _userStates.FirstOrDefault(kvp => kvp.Value.ClientId == solicitud.ClienteId).Key,
+                    $"❌ Tu solicitud fue rechazada por la tienda.");
+
+                await botClient.AnswerCallbackQueryAsync(callback.Id);
+                return;
+            }
+
+            if (accion == "aprobar")
+            {
+                // Guardamos que este admin está aprobando, y solicitamos datos de valor y fecha
+                userState.MenuState = MenuState.AprobandoSolicitud;
+                userState.SolicitudEnProcesoId = solicitudId;
+
+                await botClient.SendTextMessageAsync(chatId,
+                    $"✍️ Ingresa el valor total y la fecha de pago para la solicitud `{solicitudId}`.\n" +
+                    "Formato: 35000, 15/06/2025");
+
+                await botClient.AnswerCallbackQueryAsync(callback.Id);
+                return;
+            }
+        }
+
     }
 }

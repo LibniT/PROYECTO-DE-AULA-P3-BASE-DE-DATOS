@@ -74,7 +74,7 @@ namespace BLL
             return ventaId;
         }
 
-        public int AprobarCompra(CompraEnProceso compra, DateTime fechaVencimiento)
+        public int AprobarCompra(CompraEnProceso compra, DateTime fechaVencimiento, string nombreAdministrador)
         {
             // Validar que el cliente existe y no esté bloqueado
             var cliente = _clienteDAL.ObtenerPorId(compra.ClienteId);
@@ -87,7 +87,7 @@ namespace BLL
             // Crear entidad de venta
             var venta = new VentaEntity
             {
-                Descripcion = compra.Descripcion,
+                Descripcion = $"{compra.Descripcion}\n(Aprobado por: {nombreAdministrador})",
                 IdCliente = compra.ClienteId,
                 Total = compra.Total,
                 Fecha = DateTime.Now
@@ -108,6 +108,7 @@ namespace BLL
 
             return ventaId;
         }
+
 
         public string GenerarListaClientes()
         {

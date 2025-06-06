@@ -11,7 +11,7 @@ namespace PRIMERA_ENTREGA_PROYECTO_DE_AULA
         [STAThread]
         static void Main(string[] args)
         {
-            /*
+            
             // Build configuration from appsettings.json
             string projectDirectory = Directory.GetParent(Directory.GetCurrentDirectory()).Parent.Parent.FullName;
             var config = new ConfigurationBuilder()
@@ -22,9 +22,6 @@ namespace PRIMERA_ENTREGA_PROYECTO_DE_AULA
             // Retrieve the bot token from the config
             string token = config["TelegramBot:Token"];
 
-            */
-
-            string token = "7513208438:AAGxrYwLGXj2S-WElA4DHoY2ApFghvnMe6M";
 
 
             // Initialize the bot asynchronously
